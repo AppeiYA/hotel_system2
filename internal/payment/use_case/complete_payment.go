@@ -39,6 +39,15 @@ func (uc *CompletePayment) Execute(
 	reference string,
 ) error {
 
+	payment, err := uc.paymentRepo.FindByReference(ctx, reference)
+	if err != nil {
+		return err
+	}
+
+	if payment.Status == payment_domain.PaymentStatusSuccess {
+    	return payment_domain.ErrPaymentAlreadyCompleted
+	}
+
 	ok, method, err := uc.gateway.Verify(
 		ctx,
 		reference,
@@ -68,10 +77,20 @@ func (uc *CompletePayment) Execute(
 			return err
 		}
 
-		return uc.reservationRepo.UpdateStatus(
+		reservation, err := uc.reservationRepo.FindByIDForUpdate(
 			ctx,
 			payment.ReservationID,
-			reservation_domain.ReservationStatusConfirmed,
 		)
+		if err != nil {
+			return err
+		}
+
+		reservation.Status = reservation_domain.ReservationStatusConfirmed
+
+		if err := uc.reservationRepo.Update(ctx, reservation); err != nil {
+			return err
+		}
+
+		return nil
 	})
 }

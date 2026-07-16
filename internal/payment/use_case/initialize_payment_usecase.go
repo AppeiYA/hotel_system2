@@ -72,6 +72,15 @@ func (uc *InitializePayment) Execute(
 		return nil, err
 	}
 
+	existing, _ := uc.paymentRepo.FindByReservationID(
+	ctx,
+	reservation.ID,
+	)
+
+	if existing != nil {
+		return nil, payment_domain.ErrPaymentAlreadyInitialized
+	}
+
 	if _, err := uc.gateway.Initialize(
 		ctx,
 		"email",

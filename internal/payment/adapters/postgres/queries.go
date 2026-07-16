@@ -33,4 +33,11 @@ const (
 		WHERE id = $3
 		RETURNING *;
 	`
+
+	FindByReservationID = `
+    SELECT *
+    FROM payment
+    WHERE reservation_id = $1
+    LIMIT 1;
+	`
 )

@@ -7,6 +7,9 @@ import (
 	guest_postgres "hotel_system2/internal/guest/adapters/postgres"
 	guest_usecase "hotel_system2/internal/guest/use_case"
 	"hotel_system2/internal/http"
+	"hotel_system2/internal/payment/adapters/mock_gateway"
+	payment_postgres "hotel_system2/internal/payment/adapters/postgres"
+	payment_usecase "hotel_system2/internal/payment/use_case"
 	reservation_http "hotel_system2/internal/reservation/adapters/http"
 	reservation_postgres "hotel_system2/internal/reservation/adapters/postgres"
 	reservation_usecase "hotel_system2/internal/reservation/use_case"
@@ -93,24 +96,44 @@ func main() {
 	roomRepo := room_postgres.NewRepository(db)
 	guestRepo := guest_postgres.NewRepository(db)
 	reservationRepo := reservation_postgres.NewRepository(db)
+	paymentRepo := payment_postgres.NewRepository(db)
+	mockgateway := mock_gateway.NewGateway()
 
 	// ===========================
 	// Use Cases
 	// ===========================
 
+	// room
 	_ = room_usecase.NewCreateRoom(roomRepo)
 	listRooms := room_usecase.NewListRooms(roomRepo)
 	_ = room_usecase.NewUpdateRoomStatus(roomRepo)
 
+	// guest
 	_ = guest_usecase.NewCreateGuest(guestRepo)
 
+	// payment
+	initializePayment := payment_usecase.NewInitializePayment(
+		txManager,
+		paymentRepo,
+		reservationRepo,
+		guestRepo,
+		mockgateway,
+	)
+	completePayment := payment_usecase.NewCompletePayment(
+		txManager,
+		paymentRepo,
+		reservationRepo,
+		mockgateway,
+	)
+
+
+	// reservation
 	createReservation := reservation_usecase.NewCreateReservation(
 		txManager,
 		reservationRepo,
 		roomRepo,
 		guestRepo,
 	)
-
 	getReservation := reservation_usecase.NewGetReservation(reservationRepo)
 	listReservations := reservation_usecase.NewListReservations(reservationRepo)
 	checkIn := reservation_usecase.NewCheckIn(
@@ -128,7 +151,6 @@ func main() {
 	// ===========================
 	// Handlers
 	// ===========================
-
 	roomHandler := room_http.NewHandler(
 		listRooms,
 	)
@@ -139,6 +161,11 @@ func main() {
 		*listReservations,
 		*checkIn,
 		*checkOut,
+	)
+
+	paymentHandler := payment_http.NewHandler(
+		initializePayment,
+		completePayment,
 	)
 
 	// ===========================
@@ -152,6 +179,7 @@ func main() {
 		app,
 		roomHandler,
 		reservationHandler,
+		paymentHandler,
 	)
 
 	port := strings.TrimSpace(cfg.PORT)

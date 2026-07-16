@@ -104,3 +104,25 @@ func (r *Repository) Update(
 
 	return nil
 }
+
+func (r *Repository) FindByReservationID(
+    ctx context.Context,
+    reservationID string,
+) (*payment_domain.Payment, error) {
+
+    exec := r.executor(ctx)
+
+    var row paymentRow
+
+    err := exec.GetContext(
+        ctx,
+        &row,
+        FindByReservationID,
+        reservationID,
+    )
+    if err != nil {
+        return nil, err
+    }
+
+    return row.toDomain(), nil
+}
