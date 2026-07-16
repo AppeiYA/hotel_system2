@@ -113,6 +113,16 @@ func main() {
 
 	getReservation := reservation_usecase.NewGetReservation(reservationRepo)
 	listReservations := reservation_usecase.NewListReservations(reservationRepo)
+	checkIn := reservation_usecase.NewCheckIn(
+		txManager,
+		reservationRepo,
+		roomRepo,
+	)
+	checkOut := reservation_usecase.NewCheckOut(
+		txManager,
+		reservationRepo,
+		roomRepo,
+	)
 
 
 	// ===========================
@@ -127,6 +137,8 @@ func main() {
 		*createReservation,
 		*getReservation,
 		*listReservations,
+		*checkIn,
+		*checkOut,
 	)
 
 	// ===========================
