@@ -1,0 +1,235 @@
+basePath: /api/v1
+definitions:
+  hotel_system2_internal_payment_domain.PaymentMethod:
+    enum:
+    - card
+    - transfer
+    - cash
+    type: string
+    x-enum-varnames:
+    - PaymentMethodCreditCard
+    - PaymentMethodDebitCard
+    - PaymentMethodCash
+  hotel_system2_internal_payment_domain.PaymentStatus:
+    enum:
+    - pending
+    - success
+    - failed
+    - refunded
+    type: string
+    x-enum-varnames:
+    - PaymentStatusPending
+    - PaymentStatusSuccess
+    - PaymentStatusFailed
+    - PaymentStatusRefunded
+  hotel_system2_internal_reservation_domain.ReservationStatus:
+    enum:
+    - pending
+    - confirmed
+    - checked_in
+    - checked_out
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - ReservationStatusPending
+    - ReservationStatusConfirmed
+    - ReservationStatusCheckedIn
+    - ReservationStatusCheckedOut
+    - ReservationStatusCancelled
+  hotel_system2_internal_shared_response.ErrorResponse:
+    properties:
+      error: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  hotel_system2_internal_shared_response.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  internal_reservation_adapters_http.CreateReservationRequest:
+    properties:
+      check_in:
+        type: string
+      check_out:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      room_id:
+        type: string
+    required:
+    - check_in
+    - check_out
+    - email
+    - first_name
+    - last_name
+    - phone
+    - room_id
+    type: object
+  internal_reservation_adapters_http.paymentDetailsOnly:
+    properties:
+      amount:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: string
+      method:
+        $ref: '#/definitions/hotel_system2_internal_payment_domain.PaymentMethod'
+      reference:
+        type: string
+      reservation_id:
+        type: string
+      status:
+        $ref: '#/definitions/hotel_system2_internal_payment_domain.PaymentStatus'
+    type: object
+  internal_reservation_adapters_http.reservationDetailsOnly:
+    properties:
+      check_in:
+        type: string
+      check_out:
+        type: string
+      created_at:
+        type: string
+      guest_id:
+        type: string
+      id:
+        type: string
+      room_id:
+        type: string
+      status:
+        $ref: '#/definitions/hotel_system2_internal_reservation_domain.ReservationStatus'
+      total_amount:
+        type: integer
+    type: object
+  internal_reservation_adapters_http.reservationResponse:
+    properties:
+      payment:
+        $ref: '#/definitions/internal_reservation_adapters_http.paymentDetailsOnly'
+      reservation:
+        $ref: '#/definitions/internal_reservation_adapters_http.reservationDetailsOnly'
+    type: object
+  internal_room_adapters_http.roomResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      rate:
+        type: integer
+      room_number:
+        type: string
+      room_type:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:3333
+info:
+  contact: {}
+  description: Hotel Reservation System API
+  title: Hotel Reservation API
+  version: "1.0"
+paths:
+  /reservations:
+    post:
+      consumes:
+      - application/json
+      description: Create a new reservation with the provided details
+      parameters:
+      - description: Reservation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_reservation_adapters_http.CreateReservationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_reservation_adapters_http.reservationResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: Create a new reservation
+      tags:
+      - Reservations
+  /reservations/{id}:
+    get:
+      description: Get reservation details by reservation ID
+      parameters:
+      - description: Reservation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_reservation_adapters_http.reservationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: Get reservation details
+      tags:
+      - Reservations
+  /rooms:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all available rooms
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_room_adapters_http.roomResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: Get Rooms
+      tags:
+      - Rooms
+schemes:
+- http
+swagger: "2.0"

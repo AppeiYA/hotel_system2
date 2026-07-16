@@ -1,0 +1,60 @@
+package session
+
+import (
+	"fmt"
+	"hotel_system2/internal/shared/config"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/storage/redis/v3"
+)
+
+type SessionParam struct {
+	ID             string
+	Role           string
+	Email          string
+}
+
+var Store *session.Store
+
+func InitSessionStore(cfg *config.Config) {
+	storage := redis.New(redis.Config{
+		Host:     cfg.RedisHost,
+		Port:     cfg.RedisPort,
+		Password: cfg.RedisPassword,
+		Database: cfg.RedisDB,
+	})
+	var sameSite string
+	if cfg.AppEnv == "production" {
+		sameSite = "Lax"
+	} else {
+		sameSite = "None"
+	}
+	Store = session.New(session.Config{
+		Storage:        storage,
+		Expiration:     24 * time.Hour,
+		KeyLookup:      "cookie:session_id",
+		CookieHTTPOnly: true,
+		CookieSecure:   cfg.AppEnv == "production",
+		CookieSameSite: sameSite,
+		// CookieDomain: "localhost",
+	})
+}
+
+func SetSession(c *fiber.Ctx, param SessionParam) (*session.Session, error) {
+	sess, err := Store.Get(c)
+	if err != nil {
+		return nil, fmt.Errorf("could not get session: %w", err)
+	}
+
+	sess.Set("userID", param.ID)
+	sess.Set("role", param.Role)
+	sess.Set("email", param.Email)
+
+	if err := sess.Save(); err != nil {
+		return nil, fmt.Errorf("could not save session: %w", err)
+	}
+
+	return sess, nil
+}

@@ -1,0 +1,354 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Hotel Reservation System API",
+        "title": "Hotel Reservation API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:3333",
+    "basePath": "/api/v1",
+    "paths": {
+        "/reservations": {
+            "post": {
+                "description": "Create a new reservation with the provided details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Create a new reservation",
+                "parameters": [
+                    {
+                        "description": "Reservation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_reservation_adapters_http.CreateReservationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_reservation_adapters_http.reservationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservations/{id}": {
+            "get": {
+                "description": "Get reservation details by reservation ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Get reservation details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Reservation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_reservation_adapters_http.reservationResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/rooms": {
+            "get": {
+                "description": "Retrieve a list of all available rooms",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rooms"
+                ],
+                "summary": "Get Rooms",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/internal_room_adapters_http.roomResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "hotel_system2_internal_payment_domain.PaymentMethod": {
+            "type": "string",
+            "enum": [
+                "card",
+                "transfer",
+                "cash"
+            ],
+            "x-enum-varnames": [
+                "PaymentMethodCreditCard",
+                "PaymentMethodDebitCard",
+                "PaymentMethodCash"
+            ]
+        },
+        "hotel_system2_internal_payment_domain.PaymentStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "success",
+                "failed",
+                "refunded"
+            ],
+            "x-enum-varnames": [
+                "PaymentStatusPending",
+                "PaymentStatusSuccess",
+                "PaymentStatusFailed",
+                "PaymentStatusRefunded"
+            ]
+        },
+        "hotel_system2_internal_reservation_domain.ReservationStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "confirmed",
+                "checked_in",
+                "checked_out",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "ReservationStatusPending",
+                "ReservationStatusConfirmed",
+                "ReservationStatusCheckedIn",
+                "ReservationStatusCheckedOut",
+                "ReservationStatusCancelled"
+            ]
+        },
+        "hotel_system2_internal_shared_response.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {},
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "hotel_system2_internal_shared_response.Response": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_reservation_adapters_http.CreateReservationRequest": {
+            "type": "object",
+            "required": [
+                "check_in",
+                "check_out",
+                "email",
+                "first_name",
+                "last_name",
+                "phone",
+                "room_id"
+            ],
+            "properties": {
+                "check_in": {
+                    "type": "string"
+                },
+                "check_out": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "room_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_reservation_adapters_http.paymentDetailsOnly": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "method": {
+                    "$ref": "#/definitions/hotel_system2_internal_payment_domain.PaymentMethod"
+                },
+                "reference": {
+                    "type": "string"
+                },
+                "reservation_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hotel_system2_internal_payment_domain.PaymentStatus"
+                }
+            }
+        },
+        "internal_reservation_adapters_http.reservationDetailsOnly": {
+            "type": "object",
+            "properties": {
+                "check_in": {
+                    "type": "string"
+                },
+                "check_out": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "guest_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "room_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hotel_system2_internal_reservation_domain.ReservationStatus"
+                },
+                "total_amount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_reservation_adapters_http.reservationResponse": {
+            "type": "object",
+            "properties": {
+                "payment": {
+                    "$ref": "#/definitions/internal_reservation_adapters_http.paymentDetailsOnly"
+                },
+                "reservation": {
+                    "$ref": "#/definitions/internal_reservation_adapters_http.reservationDetailsOnly"
+                }
+            }
+        },
+        "internal_room_adapters_http.roomResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "rate": {
+                    "type": "integer"
+                },
+                "room_number": {
+                    "type": "string"
+                },
+                "room_type": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
