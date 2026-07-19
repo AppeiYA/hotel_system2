@@ -2,6 +2,7 @@ package reservation_http
 
 import (
 	"fmt"
+	guest_domain "hotel_system2/internal/guest/domain"
 	payment_domain "hotel_system2/internal/payment/domain"
 	reservation_domain "hotel_system2/internal/reservation/domain"
 	reservation_usecase "hotel_system2/internal/reservation/use_case"
@@ -11,7 +12,7 @@ import (
 type createReservationRequest struct {
 	FirstName string                              `json:"first_name" validate:"required"`
 	LastName  string                              `json:"last_name" validate:"required"`
-	Email     string                              `json:"email" validate:"required,email"`
+	Email     guest_domain.Email                             `json:"email" validate:"required,email"`
 	Phone     string                              `json:"phone" validate:"required"`
 	RoomID    string                              `json:"room_id" validate:"required"`
 	CheckIn   reservation_usecase.FlexibleDateTime `json:"check_in" validate:"required"`

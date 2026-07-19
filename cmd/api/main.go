@@ -7,6 +7,7 @@ import (
 	guest_postgres "hotel_system2/internal/guest/adapters/postgres"
 	guest_usecase "hotel_system2/internal/guest/use_case"
 	"hotel_system2/internal/http"
+	payment_http "hotel_system2/internal/payment/adapters/http"
 	"hotel_system2/internal/payment/adapters/mock_gateway"
 	payment_postgres "hotel_system2/internal/payment/adapters/postgres"
 	payment_usecase "hotel_system2/internal/payment/use_case"

@@ -19,7 +19,13 @@ func (uc *CreateGuest) Execute(
 	ctx context.Context,
 	input domain.Guest,
 ) error {
-	err := uc.guestRepo.Create(ctx, &input)
+	// check email valid
+	err := input.Email.Validate()
+	if err != nil {
+		return err
+	}
+
+	err = uc.guestRepo.Create(ctx, &input)
 	if err != nil {
 		return custom_errors.InternalServerError("Error processing guest record: " + err.Error())
 	}

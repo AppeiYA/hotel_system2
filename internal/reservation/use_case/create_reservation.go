@@ -8,13 +8,13 @@ import (
 	reservation_ports "hotel_system2/internal/reservation/ports"
 	room_domain "hotel_system2/internal/room/domain"
 	room_ports "hotel_system2/internal/room/ports"
-	"hotel_system2/internal/shared/db"
+	shared_ports "hotel_system2/internal/shared/ports"
 )
 
 type CreateReservationInput struct {
 	FirstName string 
 	LastName  string              
-	Email     string              
+	Email     guest_domain.Email              
 	Phone     string              
 	RoomID    string              
 	CheckIn   FlexibleDateTime 
@@ -22,14 +22,14 @@ type CreateReservationInput struct {
 }
 
 type CreateReservation struct {
-	txManager *db.TransactionManager
+	txManager shared_ports.TransactionManagerInt
 	reservationRepo reservation_ports.Repository
 	roomRepo room_ports.Repository
 	guestRepo guest_ports.Repository
 }
 
 func NewCreateReservation(
-	txManager *db.TransactionManager, 
+	txManager shared_ports.TransactionManagerInt, 
 	reservationRepo reservation_ports.Repository, 
 	roomRepo room_ports.Repository, 
 	guestRepo guest_ports.Repository,
