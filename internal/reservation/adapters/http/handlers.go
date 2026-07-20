@@ -15,7 +15,7 @@ import (
 
 type Handler struct {
 	createReservation usecase.CreateReservation
-	getReservation usecase.GetReservation
+	listReservationByEmail usecase.ListReservationByEmail
 	listReservations usecase.ListReservations
 	checkIn           usecase.CheckIn
 	checkOut          usecase.CheckOut
@@ -23,14 +23,14 @@ type Handler struct {
 
 func NewHandler(
 	createReservation usecase.CreateReservation,
-	getReservation usecase.GetReservation,
+	listReservationByEmail usecase.ListReservationByEmail,
 	listReservations usecase.ListReservations,
 	checkIn usecase.CheckIn,
 	checkOut usecase.CheckOut,
 ) *Handler {
 	return &Handler{
 		createReservation: createReservation, 
-		getReservation: getReservation,
+		listReservationByEmail: listReservationByEmail,
 		listReservations: listReservations,
 		checkIn:           checkIn,
 		checkOut:          checkOut,
@@ -53,14 +53,10 @@ func (h *Handler) CreateReservation(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
 
-	input := usecase.CreateReservationInput{
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Email:     req.Email,
-		Phone:     req.Phone,
-		RoomID:    req.RoomID,
-		CheckIn:   req.CheckIn,
-		CheckOut:  req.CheckOut,
+	input, err := req.toInput()
+	if err != nil {
+		logger.Error("Error converting request to input", zap.Error(err))
+		return response.Error(c, fiber.StatusInternalServerError, err.Error(), nil)
 	}
 
 	resp, err := h.createReservation.Execute(c.Context(), input)
@@ -72,16 +68,15 @@ func (h *Handler) CreateReservation(c *fiber.Ctx) error {
 	return response.JSON(c, fiber.StatusCreated, "Reservation created successfully", resp)
 }
 
-func (h *Handler) GetReservation(c *fiber.Ctx) error {
-	id := c.Params("id")
-	_, err := uuid.Parse(id)
-	if err != nil {
-		return response.Error(c, fiber.StatusBadRequest, "invalid reservation id", err)
+func (h *Handler) ListReservationsByEmail(c *fiber.Ctx) error {
+	email := c.Params("email")
+	if email == "" {
+		return response.Error(c, fiber.StatusBadRequest, "invalid email", nil)
 	}
 
-	resp, err := h.getReservation.Execute(c.Context(), id)
+	resp, err := h.listReservationByEmail.Execute(c.Context(), email)
 	if err != nil {
-		logger.Error("Error fetching reservation at handlers.GetReservation", zap.Error(err))
+		logger.Error("Error fetching reservation at handlers.ListReservationsByEmail", zap.Error(err))
 		return response.Error(c, fiber.StatusInternalServerError, err.Error(), nil)
 	}
 

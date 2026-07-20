@@ -22,6 +22,7 @@ func TestCreateReservation_Success(t *testing.T) {
 		repo,
 		&test_mocks.MockRoomRepository{},
 		&test_mocks.MockGuestRepository{},
+		&test_mocks.MockPaymentLookupPort{},
 	)
 
 	request := CreateReservationInput{}

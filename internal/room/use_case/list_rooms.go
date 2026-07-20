@@ -7,14 +7,14 @@ import (
 )
 
 type ListRooms struct {
-	roomRepo ports.Repository
+	roomRepo ports.RoomRepository
 }
 
-func NewListRooms(roomRepo ports.Repository) *ListRooms {
+func NewListRooms(roomRepo ports.RoomRepository) *ListRooms {
 	return &ListRooms{roomRepo: roomRepo}
 }
 
-func (l *ListRooms) Execute(ctx context.Context) ([]domain.Room, error) {
+func (l *ListRooms) Execute(ctx context.Context) ([]*domain.Room, error) {
 	rooms, err := l.roomRepo.List(ctx)
 	if err != nil {
 		return nil, err

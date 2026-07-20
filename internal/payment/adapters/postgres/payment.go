@@ -28,7 +28,12 @@ func (r *Repository) Create(
 		return err
 	}
 
-	*payment = *row.toDomain()
+	resp, err := row.toDomain()
+	if err != nil {
+		return err
+	}
+
+	*payment = *resp
 
 	return nil
 }
@@ -53,7 +58,12 @@ func (r *Repository) FindByID(
 		return nil, err
 	}
 
-	return row.toDomain(), nil
+	resp, err := row.toDomain()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (r *Repository) FindByReference(
@@ -76,7 +86,12 @@ func (r *Repository) FindByReference(
 		return nil, err
 	}
 
-	return row.toDomain(), nil
+	resp, err := row.toDomain()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (r *Repository) Update(
@@ -100,7 +115,12 @@ func (r *Repository) Update(
 		return err
 	}
 
-	*payment = *row.toDomain()
+	resp, err := row.toDomain()
+	if err != nil {
+		return err
+	}
+
+	*payment = *resp
 
 	return nil
 }
@@ -124,5 +144,10 @@ func (r *Repository) FindByReservationID(
         return nil, err
     }
 
-    return row.toDomain(), nil
+	resp, err := row.toDomain()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

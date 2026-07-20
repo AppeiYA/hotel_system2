@@ -3,17 +3,37 @@ package reservation_usecase
 import (
 	"context"
 	"hotel_system2/internal/reservation/domain"
-	reservation_ports "hotel_system2/internal/reservation/ports"
+	"hotel_system2/internal/reservation/ports"
 )
 
-type GetReservation struct {
-	reservationRepo reservation_ports.Repository
+type GetReservationDetailsUseCase struct {
+	reservationRepo reservation_ports.ReservationRepository
+	paymentLookup   reservation_ports.PaymentLookupPort
 }
 
-func NewGetReservation(reservationRepo reservation_ports.Repository) *GetReservation {
-	return &GetReservation{reservationRepo: reservationRepo}
+func NewGetReservationDetailsUseCase(
+	repo reservation_ports.ReservationRepository,
+	paymentLookup reservation_ports.PaymentLookupPort,
+) *GetReservationDetailsUseCase {
+	return &GetReservationDetailsUseCase{
+		reservationRepo: repo,
+		paymentLookup:   paymentLookup,
+	}
 }
 
-func (g *GetReservation) Execute(ctx context.Context, id string) (*domain.ReservationDetails, error) {
-	return g.reservationRepo.GetReservationDetails(ctx, id)
+func (uc *GetReservationDetailsUseCase) Execute(ctx context.Context, reservationID string) (*domain.ReservationDetails, error) {
+	res, err := uc.reservationRepo.FindByID(ctx, reservationID)
+	if err != nil {
+		return nil, err
+	}
+
+	paymentID, err := uc.paymentLookup.FindPaymentIDByReservationID(ctx, reservationID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.ReservationDetails{
+		Reservation: *res,
+		PaymentID:   paymentID,
+	}, nil
 }

@@ -28,8 +28,8 @@ func (h *Handler) ListRooms(c *fiber.Ctx) error {
 
 	resp := make([]roomResponse, len(rooms))
 	for i, room := range rooms {
-		resp[i] = toRoomResponse(&room)
+		resp[i] = toRoomResponse(room)
 	}
 
-	return response.JSON(c, fiber.StatusOK, "Rooms fetched successfully", rooms)
+	return response.JSON(c, fiber.StatusOK, "Rooms fetched successfully", resp)
 }

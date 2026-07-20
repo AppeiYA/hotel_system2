@@ -7,10 +7,12 @@ import (
 	guest_postgres "hotel_system2/internal/guest/adapters/postgres"
 	guest_usecase "hotel_system2/internal/guest/use_case"
 	"hotel_system2/internal/http"
+	payment_external "hotel_system2/internal/payment/adapters/external"
 	payment_http "hotel_system2/internal/payment/adapters/http"
 	"hotel_system2/internal/payment/adapters/mock_gateway"
 	payment_postgres "hotel_system2/internal/payment/adapters/postgres"
 	payment_usecase "hotel_system2/internal/payment/use_case"
+	reservation_external "hotel_system2/internal/reservation/adapters/external"
 	reservation_http "hotel_system2/internal/reservation/adapters/http"
 	reservation_postgres "hotel_system2/internal/reservation/adapters/postgres"
 	reservation_usecase "hotel_system2/internal/reservation/use_case"
@@ -105,28 +107,33 @@ func main() {
 	// ===========================
 
 	// room
-	_ = room_usecase.NewCreateRoom(roomRepo)
+	// _ = room_usecase.(roomRepo)
 	listRooms := room_usecase.NewListRooms(roomRepo)
-	_ = room_usecase.NewUpdateRoomStatus(roomRepo)
+	// _ = room_usecase.NewUpdateRoomStatus(roomRepo)
 
 	// guest
 	_ = guest_usecase.NewCreateGuest(guestRepo)
+
+	// reservationConfirmer
+	reservationConfirmer := payment_external.NewReservationConfirmationAdapter(reservationRepo)
 
 	// payment
 	initializePayment := payment_usecase.NewInitializePayment(
 		txManager,
 		paymentRepo,
-		reservationRepo,
+		reservationConfirmer,
 		guestRepo,
 		mockgateway,
 	)
 	completePayment := payment_usecase.NewCompletePayment(
 		txManager,
 		paymentRepo,
-		reservationRepo,
+		reservationConfirmer,
 		mockgateway,
 	)
 
+	// payment lookup adapter in reservation
+	reservation_payment_lookup := reservation_external.NewPaymentLookupAdapter(paymentRepo)
 
 	// reservation
 	createReservation := reservation_usecase.NewCreateReservation(
@@ -134,8 +141,9 @@ func main() {
 		reservationRepo,
 		roomRepo,
 		guestRepo,
+		reservation_payment_lookup,
 	)
-	getReservation := reservation_usecase.NewGetReservation(reservationRepo)
+	listReservationByEmail := reservation_usecase.NewListReservationByEmail(reservationRepo)
 	listReservations := reservation_usecase.NewListReservations(reservationRepo)
 	checkIn := reservation_usecase.NewCheckIn(
 		txManager,
@@ -158,7 +166,7 @@ func main() {
 
 	reservationHandler := reservation_http.NewHandler(
 		*createReservation,
-		*getReservation,
+		*listReservationByEmail,
 		*listReservations,
 		*checkIn,
 		*checkOut,

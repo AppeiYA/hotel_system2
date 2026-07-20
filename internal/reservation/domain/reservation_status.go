@@ -10,11 +10,12 @@ const (
 	ReservationStatusCheckedIn  ReservationStatus = "checked_in"
 	ReservationStatusCheckedOut ReservationStatus = "checked_out"
 	ReservationStatusCancelled  ReservationStatus = "cancelled"
+	ReservationStatusNoShow     ReservationStatus = "no_show"
 )
 
 func (rs ReservationStatus) IsValid() bool {
 	switch rs {
-	case ReservationStatusPending, ReservationStatusConfirmed, ReservationStatusCheckedIn, ReservationStatusCheckedOut, ReservationStatusCancelled:
+	case ReservationStatusPending, ReservationStatusConfirmed, ReservationStatusCheckedIn, ReservationStatusCheckedOut, ReservationStatusCancelled, ReservationStatusNoShow:
 		return true
 	default:
 		return false
@@ -27,16 +28,10 @@ var validReservationTransitions = map[ReservationStatus][]ReservationStatus{
 	ReservationStatusCheckedIn:  {ReservationStatusCheckedOut},
 	ReservationStatusCheckedOut: {}, // terminal
 	ReservationStatusCancelled:  {}, // terminal
+	ReservationStatusNoShow:     {}, // terminal
 }
 
 func (rs ReservationStatus) CanTransitionTo(target ReservationStatus) bool {
 	allowed, ok := validReservationTransitions[rs]
-	if !ok {
-		return false
-	}
-	if slices.Contains(allowed, target) {
-		return true
-	}
-
-	return false
+	return ok && slices.Contains(allowed, target)
 }

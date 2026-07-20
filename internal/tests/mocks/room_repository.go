@@ -10,7 +10,7 @@ type MockRoomRepository struct {
 	CreateFn            func(ctx context.Context, room *room_domain.Room) error
 	FindByIDFn          func(ctx context.Context, id string) (*room_domain.Room, error)
 	FindByNumberFn      func(ctx context.Context, roomNumber string) (*room_domain.Room, error)
-	ListFn              func(ctx context.Context) ([]room_domain.Room, error)
+	ListFn              func(ctx context.Context) ([]*room_domain.Room, error)
 	UpdateFn            func(ctx context.Context, room *room_domain.Room) error
 	DeleteFn            func(ctx context.Context, id string) error
 	UpdateStatusFn      func(ctx context.Context, id string, status room_domain.RoomStatus) error
@@ -39,7 +39,7 @@ func (m *MockRoomRepository) FindByNumber(ctx context.Context, roomNumber string
 	return nil, nil
 }
 
-func (m *MockRoomRepository) List(ctx context.Context) ([]room_domain.Room, error) {
+func (m *MockRoomRepository) List(ctx context.Context) ([]*room_domain.Room, error) {
 	if m.ListFn != nil {
 		return m.ListFn(ctx)
 	}

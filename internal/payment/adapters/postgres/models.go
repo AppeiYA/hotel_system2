@@ -1,6 +1,7 @@
 package payment_postgres
 
 import (
+	"hotel_system2/internal/payment/domain"
 	payment_domain "hotel_system2/internal/payment/domain"
 	"time"
 )
@@ -15,14 +16,25 @@ type paymentRow struct {
 	CreatedAt     time.Time                   `db:"created_at"`
 }
 
-func (r paymentRow) toDomain() *payment_domain.Payment {
-	return &payment_domain.Payment{
-		ID:            r.ID,
-		ReservationID: r.ReservationID,
-		Reference:     r.Reference,
-		Amount:        r.Amount,
-		Status:        r.Status,
-		Method:        r.Method,
-		CreatedAt:     r.CreatedAt,
+func paymentRowFromDomain(payment *payment_domain.Payment) paymentRow {
+	return paymentRow{
+		ID:            payment.ID(),
+		ReservationID: payment.ReservationID(),
+		Reference:     payment.Reference(),
+		Amount:        payment.Amount().AmountMinor,
+		Status:        payment.Status(),
+		Method:        payment.Method(),
+		CreatedAt:     payment.CreatedAt(),
 	}
+}
+
+func (r paymentRow) toDomain() (*payment_domain.Payment, error) {
+	return domain.ReconstitutePayment(
+		r.ID,
+		r.ReservationID,
+		r.Reference,
+		r.Amount,
+		r.Status,
+		r.Method,
+	)
 }

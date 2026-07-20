@@ -6,7 +6,7 @@ import (
 	payment_domain "hotel_system2/internal/payment/domain"
 	payment_ports "hotel_system2/internal/payment/ports"
 	// reservation_domain "hotel_system2/internal/reservation/domain"
-	reservation_ports "hotel_system2/internal/reservation/ports"
+	// reservation_ports "hotel_system2/internal/reservation/ports"
 	"hotel_system2/internal/shared/db"
 
 	"github.com/google/uuid"
@@ -23,24 +23,24 @@ type InitializePaymentOutput struct {
 type InitializePayment struct {
 	txManager *db.TransactionManager
 
-	paymentRepo     payment_ports.Repository
-	reservationRepo reservation_ports.Repository
-	guestRepo		 guest_ports.Repository
+	paymentRepo     payment_ports.PaymentRepository
+	reservationConfirmer  payment_ports.ReservationConfirmationPort
+	guestRepo		 guest_ports.GuestRepository
 
 	gateway payment_ports.Gateway
 }
 
 func NewInitializePayment(
 	txManager *db.TransactionManager,
-	paymentRepo payment_ports.Repository,
-	reservationRepo reservation_ports.Repository,
-	guestRepo guest_ports.Repository,
+	paymentRepo payment_ports.PaymentRepository,
+	reservationConfirmer payment_ports.ReservationConfirmationPort,
+	guestRepo guest_ports.GuestRepository,
 	gateway payment_ports.Gateway,
 ) *InitializePayment {
 	return &InitializePayment{
 		txManager:       txManager,
 		paymentRepo:     paymentRepo,
-		reservationRepo: reservationRepo,
+		reservationConfirmer: reservationConfirmer,
 		guestRepo: guestRepo,
 		gateway:         gateway,
 	}
@@ -51,7 +51,7 @@ func (uc *InitializePayment) Execute(
 	input InitializePaymentInput,
 ) (*InitializePaymentOutput, error) {
 
-	reservation, err := uc.reservationRepo.FindByID(
+	reservation, err := uc.reservationConfirmer.FindReservationByID(
 		ctx,
 		input.ReservationID,
 	)
@@ -61,20 +61,21 @@ func (uc *InitializePayment) Execute(
 
 	reference := uuid.NewString()
 
-	payment := payment_domain.Payment{
-		ReservationID: reservation.ID,
-		Reference: reference,
-		Amount: reservation.TotalAmount,
-		Status: payment_domain.PaymentStatusPending,
-	}
+	payment, err := payment_domain.NewPayment(
+		uuid.New().String(),
+		reservation.ID(),
+		reference,
+		reservation.TotalAmount(),
+		payment_domain.PaymentMethodCreditCard,
+	)
 
-	if err := uc.paymentRepo.Create(ctx, &payment); err != nil {
+	if err := uc.paymentRepo.Create(ctx, payment); err != nil {
 		return nil, err
 	}
 
 	existing, _ := uc.paymentRepo.FindByReservationID(
 	ctx,
-	reservation.ID,
+	reservation.ID(),
 	)
 
 	if existing != nil {
@@ -84,7 +85,7 @@ func (uc *InitializePayment) Execute(
 	if _, err := uc.gateway.Initialize(
 		ctx,
 		"email",
-		payment.Amount,
+		payment.Amount().AmountMinor,
 		reference,
 	); err != nil {
 		return nil, err

@@ -2,6 +2,8 @@ package guest_postgres
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"hotel_system2/internal/guest/domain"
 )
@@ -18,10 +20,10 @@ func (r *Repository) Create(
 	err := exec.QueryRowxContext(
 		ctx,
 		Create,
-		guest.FirstName,
-		guest.LastName,
-		guest.Email,
-		guest.Phone,
+		guest.FirstName(),
+		guest.LastName(),
+		guest.Email().String(),
+		guest.Phone(),
 	).StructScan(&guestRow)
 
 	if err != nil {
@@ -95,6 +97,9 @@ func (r *Repository) FindByEmail(
 		email,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrGuestNotFound
+		}
 		return nil, err
 	}
 

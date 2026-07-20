@@ -7,16 +7,16 @@ import (
 )
 
 type ListReservations struct {
-	reservationRepo reservation_ports.Repository
+	reservationRepo reservation_ports.ReservationRepository
 }
 
-func NewListReservations(reservationRepo reservation_ports.Repository) *ListReservations {
+func NewListReservations(reservationRepo reservation_ports.ReservationRepository) *ListReservations {
 	return &ListReservations{
 		reservationRepo: reservationRepo,
 	}
 }
 
-func (uc *ListReservations) Execute(ctx context.Context) ([]reservation_domain.Reservation, error) {
+func (uc *ListReservations) Execute(ctx context.Context) ([]*reservation_domain.Reservation, error) {
 	reservations, err := uc.reservationRepo.List(ctx)
 	if err != nil {
 		return nil, err

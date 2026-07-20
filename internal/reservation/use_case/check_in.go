@@ -2,24 +2,23 @@ package reservation_usecase
 
 import (
 	"context"
+	"time"
 
-	reservation_domain "hotel_system2/internal/reservation/domain"
 	reservation_ports "hotel_system2/internal/reservation/ports"
-	room_domain "hotel_system2/internal/room/domain"
 	room_ports "hotel_system2/internal/room/ports"
 	"hotel_system2/internal/shared/db"
 )
 
 type CheckIn struct {
 	txManager       *db.TransactionManager
-	reservationRepo reservation_ports.Repository
-	roomRepo        room_ports.Repository
+	reservationRepo reservation_ports.ReservationRepository
+	roomRepo        room_ports.RoomRepository
 }
 
 func NewCheckIn(
 	txManager *db.TransactionManager,
-	reservationRepo reservation_ports.Repository,
-	roomRepo room_ports.Repository,
+	reservationRepo reservation_ports.ReservationRepository,
+	roomRepo room_ports.RoomRepository,
 ) *CheckIn {
 	return &CheckIn{
 		txManager:       txManager,
@@ -28,47 +27,30 @@ func NewCheckIn(
 	}
 }
 
-func (uc *CheckIn) Execute(
-	ctx context.Context,
-	reservationID string,
-) error {
-
+func (uc *CheckIn) Execute(ctx context.Context, reservationID string) error {
 	return uc.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
-
-		reservation, err := uc.reservationRepo.FindByIDForUpdate(ctx, reservationID)
+		reservation, err := uc.reservationRepo.FindByID(ctx, reservationID)
 		if err != nil {
 			return err
 		}
 
-		if reservation.Status != reservation_domain.ReservationStatusConfirmed {
-			return reservation_domain.ErrReservationNotConfirmed
+		if err := reservation.CheckIn(time.Now()); err != nil {
+			return err
 		}
 
-		room, err := uc.roomRepo.FindByIDForUpdate(ctx, reservation.RoomID)
+		room, err := uc.roomRepo.FindByID(ctx, reservation.RoomID())
 		if err != nil {
 			return err
 		}
 
-		if room.Status == room_domain.RoomStatusMaintenance {
-			return room_domain.ErrRoomUnavailable
-		}
-
-		if room.Status == room_domain.RoomStatusOccupied {
-			return room_domain.ErrRoomOccupied
-		}
-
-		if err := uc.roomRepo.UpdateStatus(
-			ctx,
-			room.ID,
-			room_domain.RoomStatusOccupied,
-		); err != nil {
+		if err := room.Occupy(); err != nil {
 			return err
 		}
 
-		return uc.reservationRepo.UpdateStatus(
-			ctx,
-			reservation.ID,
-			reservation_domain.ReservationStatusCheckedIn,
-		)
+		if err := uc.roomRepo.Update(ctx, room); err != nil {
+			return err
+		}
+
+		return uc.reservationRepo.Update(ctx, reservation)
 	})
 }

@@ -5,24 +5,36 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	shared_domain "hotel_system2/internal/shared/domain"
 )
 
 type guestRow struct {
 	ID        uuid.UUID    `db:"id"`
 	FirstName string `db:"first_name"`
 	LastName  string `db:"last_name"`
-	Email     domain.Email `db:"email"`
+	Email     shared_domain.Email `db:"email"`
 	Phone     string `db:"phone"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
-func (g *guestRow) toDomain() *domain.Guest {
-	return &domain.Guest{
-		ID:        g.ID.String(),
-		FirstName: g.FirstName,
-		LastName:  g.LastName,
-		Email:     g.Email,
-		Phone:     g.Phone,
-		CreatedAt: g.CreatedAt,
+func (g guestRow) toDomain() *domain.Guest {
+	return domain.ReconstituteGuest(
+		g.ID.String(),
+		g.FirstName,
+		g.LastName,
+		g.Email,
+		g.Phone,
+		g.CreatedAt,
+	)
+}
+
+func guestRowFromDomain(guest *domain.Guest) guestRow {
+	return guestRow{
+		ID:        uuid.MustParse(guest.ID()),
+		FirstName: guest.FirstName(),
+		LastName:  guest.LastName(),
+		Email:     guest.Email(),
+		Phone:     guest.Phone(),
+		CreatedAt: guest.CreatedAt(),
 	}
 }

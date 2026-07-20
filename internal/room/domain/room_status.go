@@ -6,6 +6,7 @@ const (
 	RoomStatusAvailable   RoomStatus = "available"
 	RoomStatusOccupied    RoomStatus = "occupied"
 	RoomStatusMaintenance RoomStatus = "maintenance"
+	RoomStatusCleaning    RoomStatus = "cleaning"
 )
 
 func (rs RoomStatus) IsValid() bool {

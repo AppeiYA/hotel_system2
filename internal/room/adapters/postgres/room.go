@@ -14,7 +14,7 @@ func (r *Repository) Create(ctx context.Context, room *domain.Room) error {
 		row.RoomNumber, row.Type, row.Rate, row.Status); err != nil {
 		return err
 	}
-	*room = row.toDomain()
+	*room = *row.toDomain()
 	return nil
 }
 
@@ -28,7 +28,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*domain.Room, err
 		return nil, err
 	}
 	room := row.toDomain()
-	return &room, nil
+	return room, nil
 }
 
 func (r *Repository) FindByNumber(ctx context.Context, roomNumber string) (*domain.Room, error) {
@@ -41,15 +41,15 @@ func (r *Repository) FindByNumber(ctx context.Context, roomNumber string) (*doma
 		return nil, err
 	}
 	room := row.toDomain()
-	return &room, nil
+	return room, nil
 }
 
-func (r *Repository) List(ctx context.Context) ([]domain.Room, error) {
+func (r *Repository) List(ctx context.Context) ([]*domain.Room, error) {
 	var rows []roomRow
 	if err := r.executor(ctx).SelectContext(ctx, &rows, LIST_ROOMS); err != nil {
 		return nil, err
 	}
-	rooms := make([]domain.Room, len(rows))
+	rooms := make([]*domain.Room, len(rows))
 	for i, row := range rows {
 		rooms[i] = row.toDomain()
 	}
@@ -62,7 +62,7 @@ func (r *Repository) Update(ctx context.Context, room *domain.Room) error {
 		row.RoomNumber, row.Type, row.Rate, row.Status, row.ID); err != nil {
 		return err
 	}
-	*room = row.toDomain()
+	*room = *row.toDomain()
 	return nil
 }
 
@@ -101,7 +101,7 @@ func (r *Repository) FindAvailable(
 		return nil, err
 	}
 	room := row.toDomain()
-	return &room, nil
+	return room, nil
 }
 
 func (r *Repository) FindByIDForUpdate(ctx context.Context, id string) (*domain.Room, error) {
@@ -114,5 +114,5 @@ func (r *Repository) FindByIDForUpdate(ctx context.Context, id string) (*domain.
 		return nil, err
 	}
 	room := row.toDomain()
-	return &room, nil
+	return room, nil
 }

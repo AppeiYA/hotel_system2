@@ -4,19 +4,18 @@ import (
 	"context"
 	"time"
 
-	reservation_domain "hotel_system2/internal/reservation/domain"
 	reservation_ports "hotel_system2/internal/reservation/ports"
 	"hotel_system2/internal/shared/db"
 )
 
 type ExpirePending struct {
 	txManager       *db.TransactionManager
-	reservationRepo reservation_ports.Repository
+	reservationRepo reservation_ports.ReservationRepository
 }
 
 func NewExpirePending(
 	txManager *db.TransactionManager,
-	reservationRepo reservation_ports.Repository,
+	reservationRepo reservation_ports.ReservationRepository,
 ) *ExpirePending {
 	return &ExpirePending{
 		txManager:       txManager,
@@ -43,10 +42,12 @@ func (uc *ExpirePending) Execute(
 
 		for _, reservation := range reservations {
 
-			if err := uc.reservationRepo.UpdateStatus(
+			if err := reservation.MarkPending(); err != nil {
+				return err
+			}
+			if err := uc.reservationRepo.Update(
 				ctx,
-				reservation.ID,
-				reservation_domain.ReservationStatusCancelled,
+				reservation,
 			); err != nil {
 				return err
 			}

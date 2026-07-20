@@ -10,4 +10,7 @@ var (
 	ErrRoomUnauthorized = custom_errors.NewCustomError("unauthorized access to room", 401, custom_errors.ErrUnauthorized)
 	ErrRoomUnavailable = custom_errors.BadException("room is unavailable")
 	ErrRoomOccupied = custom_errors.BadException("room is already occupied")
+	ErrMissingRoomNumber = custom_errors.BadException("missing room number")
+	ErrInvalidRoomRate = custom_errors.BadException("invalid room rate")
+	ErrInvalidRoomTransition = custom_errors.BadException("invalid room state transition")
 )

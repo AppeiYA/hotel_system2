@@ -4,19 +4,18 @@ import (
 	"context"
 	"time"
 
-	reservation_domain "hotel_system2/internal/reservation/domain"
 	reservation_ports "hotel_system2/internal/reservation/ports"
 	"hotel_system2/internal/shared/db"
 )
 
 type ExpireNoShow struct {
 	txManager       *db.TransactionManager
-	reservationRepo reservation_ports.Repository
+	reservationRepo reservation_ports.ReservationRepository
 }
 
 func NewExpireNoShow(
 	txManager *db.TransactionManager,
-	reservationRepo reservation_ports.Repository,
+	reservationRepo reservation_ports.ReservationRepository,
 ) *ExpireNoShow {
 	return &ExpireNoShow{
 		txManager:       txManager,
@@ -42,15 +41,12 @@ func (uc *ExpireNoShow) Execute(
 		}
 
 		for _, reservation := range reservations {
-
-			if err := uc.reservationRepo.UpdateStatus(
-				ctx,
-				reservation.ID,
-				reservation_domain.ReservationStatusCancelled,
-			); err != nil {
+			if err := reservation.MarkNoShow(); err != nil {
 				return err
 			}
-
+			if err := uc.reservationRepo.Update(ctx, reservation); err != nil {
+				return err
+			}
 			expired++
 		}
 
