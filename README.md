@@ -87,6 +87,7 @@ The project follows a standard layout for Go applications, with a clear separati
     ```sh
     git clone <your-repo-url>
     cd hotel_system2
+    go mod tidy
     ```
 
 2.  **Set up environment variables:**
@@ -109,19 +110,23 @@ The project follows a standard layout for Go applications, with a clear separati
     ```
 
 3.  **Run database migrations:**
-    _(Assuming you have a migrations tool set up)_
 
     ```sh
-    # Command to run migrations
+    go run ./migrations --up/--down/--seed/--force value
     ```
 
 4.  **Run the application:**
     ```sh
-    go run ./cmd/api/main.go
+    go run ./cmd/api
     ```
     The server will start on the port specified in your `.env` file (e.g., `http://localhost:8080`).
 
 ## API Documentation
+
+Run 
+```bash
+swag init -g ./cmd/api/main.go --parseInternal --parseDependency
+```
 
 Once the server is running, the Swagger API documentation is available at `/swagger/index.html`.
 
