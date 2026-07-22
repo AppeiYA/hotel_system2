@@ -7,16 +7,20 @@ import (
 
 func ReconstituteGuest(
 	id, firstName, lastName string,
-	email shared_domain.Email,
+	email string,
 	phone string,
 	createdAt time.Time,
-) *Guest {
+) (*Guest, error){
+	validEmail, err := shared_domain.NewEmail(email)
+	if err != nil {
+		return nil, err
+	}
 	return &Guest{
 		id:         id,
 		firstName:  firstName,
 		lastName:   lastName,
-		email:      email,
+		email:      validEmail,
 		phone:      phone,
 		createdAt:  createdAt,
-	}
+	}, nil
 }

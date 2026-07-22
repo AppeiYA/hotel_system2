@@ -1,27 +1,5 @@
 basePath: /api/v1
 definitions:
-  hotel_system2_internal_payment_domain.PaymentMethod:
-    enum:
-    - card
-    - transfer
-    - cash
-    type: string
-    x-enum-varnames:
-    - PaymentMethodCreditCard
-    - PaymentMethodDebitCard
-    - PaymentMethodCash
-  hotel_system2_internal_payment_domain.PaymentStatus:
-    enum:
-    - pending
-    - success
-    - failed
-    - refunded
-    type: string
-    x-enum-varnames:
-    - PaymentStatusPending
-    - PaymentStatusSuccess
-    - PaymentStatusFailed
-    - PaymentStatusRefunded
   hotel_system2_internal_reservation_domain.ReservationStatus:
     enum:
     - pending
@@ -29,6 +7,7 @@ definitions:
     - checked_in
     - checked_out
     - cancelled
+    - no_show
     type: string
     x-enum-varnames:
     - ReservationStatusPending
@@ -36,6 +15,7 @@ definitions:
     - ReservationStatusCheckedIn
     - ReservationStatusCheckedOut
     - ReservationStatusCancelled
+    - ReservationStatusNoShow
   hotel_system2_internal_shared_response.ErrorResponse:
     properties:
       error: {}
@@ -51,6 +31,23 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  internal_payment_adapters_http.initializePaymentRequest:
+    properties:
+      email:
+        type: string
+      reservation_id:
+        type: string
+    required:
+    - email
+    - reservation_id
+    type: object
+  internal_payment_adapters_http.initializePaymentResponse:
+    properties:
+      checkout_url:
+        type: string
+      reference:
+        type: string
     type: object
   internal_reservation_adapters_http.CreateReservationRequest:
     properties:
@@ -77,23 +74,6 @@ definitions:
     - phone
     - room_id
     type: object
-  internal_reservation_adapters_http.paymentDetailsOnly:
-    properties:
-      amount:
-        type: integer
-      created_at:
-        type: string
-      id:
-        type: string
-      method:
-        $ref: '#/definitions/hotel_system2_internal_payment_domain.PaymentMethod'
-      reference:
-        type: string
-      reservation_id:
-        type: string
-      status:
-        $ref: '#/definitions/hotel_system2_internal_payment_domain.PaymentStatus'
-    type: object
   internal_reservation_adapters_http.reservationDetailsOnly:
     properties:
       check_in:
@@ -115,8 +95,8 @@ definitions:
     type: object
   internal_reservation_adapters_http.reservationResponse:
     properties:
-      payment:
-        $ref: '#/definitions/internal_reservation_adapters_http.paymentDetailsOnly'
+      payment_id:
+        type: string
       reservation:
         $ref: '#/definitions/internal_reservation_adapters_http.reservationDetailsOnly'
     type: object
@@ -124,9 +104,11 @@ definitions:
     properties:
       created_at:
         type: string
+      currency:
+        type: string
       id:
         type: string
-      rate:
+      rate_minor:
         type: integer
       room_number:
         type: string
@@ -142,11 +124,98 @@ info:
   title: Hotel Reservation API
   version: "1.0"
 paths:
-  /reservations:
+  /payments/initialize:
     post:
       consumes:
       - application/json
-      description: Create a new reservation with the provided details
+      description: Initializes a payment session for a reservation.
+      parameters:
+      - description: Payment initialization request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_payment_adapters_http.initializePaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_payment_adapters_http.initializePaymentResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: Initialize Payment
+      tags:
+      - Payment
+  /payments/webhook/{reference}:
+    post:
+      consumes:
+      - application/json
+      description: Confirms a payment session for a reservation.
+      parameters:
+      - description: Payment reference
+        in: path
+        name: reference
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: Confirm Payment
+      tags:
+      - Payment
+  /reservations:
+    get:
+      description: Retrieve all reservations
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_reservation_adapters_http.reservationResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: List all reservations
+      tags:
+      - Reservations
+    post:
+      consumes:
+      - application/json
+      description: Create a reservation for a guest
       parameters:
       - description: Reservation details
         in: body
@@ -170,6 +239,10 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -177,11 +250,45 @@ paths:
       summary: Create a new reservation
       tags:
       - Reservations
-  /reservations/{id}:
+  /reservations/{email}:
     get:
-      description: Get reservation details by reservation ID
+      description: Retrieve all reservations belonging to a guest email
       parameters:
-      - description: Reservation ID
+      - description: Guest email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_reservation_adapters_http.reservationResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: List reservations by guest email
+      tags:
+      - Reservations
+  /reservations/{id}/check-in:
+    post:
+      description: Check a guest into a reservation
+      parameters:
+      - description: Reservation ID (UUID)
         in: path
         name: id
         required: true
@@ -192,16 +299,59 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_reservation_adapters_http.reservationResponse'
+            $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
-      summary: Get reservation details
+      summary: Check in guest
+      tags:
+      - Reservations
+  /reservations/{id}/check-out:
+    post:
+      description: Check out a guest after ensuring the folio balance is settled
+      parameters:
+      - description: Reservation ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hotel_system2_internal_shared_response.ErrorResponse'
+      summary: Check out guest
       tags:
       - Reservations
   /rooms:

@@ -17,11 +17,11 @@ func (r *Repository) Create(
 	err := exec.QueryRowxContext(
 		ctx,
 		Create,
-		payment.ReservationID,
-		payment.Reference,
-		payment.Amount,
-		payment.Status,
-		payment.Method,
+		payment.ReservationID(),
+		payment.Reference(),
+		payment.Amount().AmountMinor,
+		payment.Status(),
+		payment.Method(),
 	).StructScan(&row)
 
 	if err != nil {
@@ -106,9 +106,9 @@ func (r *Repository) Update(
 	err := exec.QueryRowxContext(
 		ctx,
 		Update,
-		payment.Status,
-		payment.Method,
-		payment.ID,
+		payment.Status(),
+		payment.Method(),
+		payment.ID(),
 	).StructScan(&row)
 
 	if err != nil {

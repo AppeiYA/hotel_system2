@@ -2,6 +2,8 @@ package reservation_postgres
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"hotel_system2/internal/reservation/domain"
@@ -10,7 +12,11 @@ import (
 func (r *Repository) FindByID(ctx context.Context, id string) (*domain.Reservation, error) {
 	exec := r.executor(ctx)
 	var row reservationRow
-	if err := exec.GetContext(ctx, &row, FindByID, id); err != nil {
+	err := exec.GetContext(ctx, &row, FindByID, id); 
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrReservationNotFound
+		}
 		return nil, err
 	}
 	return row.toDomain()

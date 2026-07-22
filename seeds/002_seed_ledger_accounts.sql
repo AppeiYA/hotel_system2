@@ -1,4 +1,5 @@
 INSERT INTO ledger_account (name, type, currency) VALUES
-    ('Cash', 'ASSET', 'NGN'),
-    ('Room Revenue', 'REVENUE', 'NGN')
+    ('Guest Receivables', 'ASSET', 'NGN'),
+    ('Room Revenue', 'REVENUE', 'NGN'),
+    ('Cash', 'ASSET', 'NGN')
 ON CONFLICT (name) DO NOTHING;

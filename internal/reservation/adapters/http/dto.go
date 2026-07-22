@@ -58,6 +58,20 @@ type reservationResponse struct {
 	PaymentID   *string                `json:"payment_id,omitempty"`
 }
 
+func toReservationDetailsOnly(reservation *reservation_domain.Reservation) reservationDetailsOnly {
+	dr := reservation.DateRange()
+	return reservationDetailsOnly{
+		ID:          reservation.ID(),
+		GuestID:     reservation.GuestID(),
+		RoomID:      reservation.RoomID(),
+		CheckIn:     dr.CheckIn,
+		CheckOut:    dr.CheckOut,
+		TotalAmount: reservation.TotalAmount().AmountMinor,
+		Status:      reservation.Status(),
+		CreatedAt:   reservation.CreatedAt(),
+	}
+}
+
 func toReservationResponse(details *reservation_domain.ReservationDetails) reservationResponse {
 	res := details.Reservation
 	dr := res.DateRange()

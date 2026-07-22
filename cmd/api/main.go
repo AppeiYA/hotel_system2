@@ -7,12 +7,14 @@ import (
 	guest_postgres "hotel_system2/internal/guest/adapters/postgres"
 	guest_usecase "hotel_system2/internal/guest/use_case"
 	"hotel_system2/internal/http"
+	ledger_external "hotel_system2/internal/ledger/adapters/external"
+	ledger_postgres "hotel_system2/internal/ledger/adapters/postgres"
+	ledger_usecase "hotel_system2/internal/ledger/use_case"
 	payment_external "hotel_system2/internal/payment/adapters/external"
 	payment_http "hotel_system2/internal/payment/adapters/http"
 	"hotel_system2/internal/payment/adapters/mock_gateway"
 	payment_postgres "hotel_system2/internal/payment/adapters/postgres"
 	payment_usecase "hotel_system2/internal/payment/use_case"
-	reservation_external "hotel_system2/internal/reservation/adapters/external"
 	reservation_http "hotel_system2/internal/reservation/adapters/http"
 	reservation_postgres "hotel_system2/internal/reservation/adapters/postgres"
 	reservation_usecase "hotel_system2/internal/reservation/use_case"
@@ -92,56 +94,45 @@ func main() {
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	// ===========================
-	// Repositories
-	// ===========================
+	// mock
+	mockgateway := mock_gateway.NewGateway(cfg.BaseUrl)
 
-	roomRepo := room_postgres.NewRepository(db)
-	guestRepo := guest_postgres.NewRepository(db)
-	reservationRepo := reservation_postgres.NewRepository(db)
-	paymentRepo := payment_postgres.NewRepository(db)
-	mockgateway := mock_gateway.NewGateway()
+	// ledger
+	ledgerAccountRepo := ledger_postgres.NewAccountRepository(db)
+	ledgerTxRepo := ledger_postgres.NewTransactionRepository(db)
 
-	// ===========================
-	// Use Cases
-	// ===========================
+	postRoomCharge := ledger_usecase.NewPostRoomCharge(ledgerAccountRepo, ledgerTxRepo)
+	postPaymentReceived := ledger_usecase.NewPostPaymentReceived(ledgerAccountRepo, ledgerTxRepo)
+	getFolioBalance := ledger_usecase.NewGetFolioBalance(ledgerAccountRepo, ledgerTxRepo)
+
+	reservationLedgerAdapter := ledger_external.NewReservationLedgerAdapter(postRoomCharge, getFolioBalance)
+	paymentLedgerAdapter := ledger_external.NewPaymentLedgerAdapter(postPaymentReceived)
 
 	// room
+	roomRepo := room_postgres.NewRepository(db)
+
 	// _ = room_usecase.(roomRepo)
 	listRooms := room_usecase.NewListRooms(roomRepo)
 	// _ = room_usecase.NewUpdateRoomStatus(roomRepo)
 
+	roomHandler := room_http.NewHandler(
+		listRooms,
+	)
+
 	// guest
+	guestRepo := guest_postgres.NewRepository(db)
+
 	_ = guest_usecase.NewCreateGuest(guestRepo)
 
-	// reservationConfirmer
-	reservationConfirmer := payment_external.NewReservationConfirmationAdapter(reservationRepo)
-
-	// payment
-	initializePayment := payment_usecase.NewInitializePayment(
-		txManager,
-		paymentRepo,
-		reservationConfirmer,
-		guestRepo,
-		mockgateway,
-	)
-	completePayment := payment_usecase.NewCompletePayment(
-		txManager,
-		paymentRepo,
-		reservationConfirmer,
-		mockgateway,
-	)
-
-	// payment lookup adapter in reservation
-	reservation_payment_lookup := reservation_external.NewPaymentLookupAdapter(paymentRepo)
-
 	// reservation
+	reservationRepo := reservation_postgres.NewRepository(db)
+
 	createReservation := reservation_usecase.NewCreateReservation(
 		txManager,
 		reservationRepo,
 		roomRepo,
 		guestRepo,
-		reservation_payment_lookup,
+		reservationLedgerAdapter,
 	)
 	listReservationByEmail := reservation_usecase.NewListReservationByEmail(reservationRepo)
 	listReservations := reservation_usecase.NewListReservations(reservationRepo)
@@ -154,15 +145,11 @@ func main() {
 		txManager,
 		reservationRepo,
 		roomRepo,
+		reservationLedgerAdapter,
 	)
 
+	reservationConfirmer := payment_external.NewReservationConfirmationAdapter(reservationRepo)
 
-	// ===========================
-	// Handlers
-	// ===========================
-	roomHandler := room_http.NewHandler(
-		listRooms,
-	)
 
 	reservationHandler := reservation_http.NewHandler(
 		*createReservation,
@@ -171,15 +158,29 @@ func main() {
 		*checkIn,
 		*checkOut,
 	)
+	//
 
+	// payment
+	paymentRepo := payment_postgres.NewRepository(db)
+
+	initializePayment := payment_usecase.NewInitializePayment(
+		paymentRepo,
+		reservationRepo,
+		guestRepo,
+		mockgateway,
+	)
+	completePayment := payment_usecase.NewCompletePayment(
+		txManager,
+		paymentRepo,
+		reservationConfirmer,
+		mockgateway,
+		paymentLedgerAdapter,
+	)
+	
 	paymentHandler := payment_http.NewHandler(
 		initializePayment,
 		completePayment,
 	)
-
-	// ===========================
-	// Routes
-	// ===========================
 	
 	// Swagger
 	app.Get("/swagger/*", swagger.HandlerDefault)

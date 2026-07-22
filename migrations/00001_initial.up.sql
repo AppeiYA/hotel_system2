@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS payment (
     reservation_id UUID NOT NULL REFERENCES reservation(id),
     reference TEXT NOT NULL UNIQUE,
     amount BIGINT NOT NULL,
-    method TEXT NOT NULL CHECK (
-        method IN ('cash','card','transfer')
+    method TEXT CHECK (
+        method IN ('cash','card','transfer', '')
     ),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (
         status IN ('pending','success','failed','refunded')

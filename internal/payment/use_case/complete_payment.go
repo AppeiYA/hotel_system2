@@ -13,6 +13,7 @@ type CompletePayment struct {
 	paymentRepo           payment_ports.PaymentRepository
 	reservationConfirmer  payment_ports.ReservationConfirmationPort
 	gateway               payment_ports.Gateway
+	ledger                payment_ports.LedgerPort
 }
 
 func NewCompletePayment(
@@ -20,12 +21,14 @@ func NewCompletePayment(
 	paymentRepo payment_ports.PaymentRepository,
 	reservationConfirmer payment_ports.ReservationConfirmationPort,
 	gateway payment_ports.Gateway,
+	ledger payment_ports.LedgerPort,
 ) *CompletePayment {
 	return &CompletePayment{
 		txManager:            txManager,
 		paymentRepo:          paymentRepo,
 		reservationConfirmer: reservationConfirmer,
 		gateway:              gateway,
+		ledger:               ledger,
 	}
 }
 
@@ -60,6 +63,14 @@ func (uc *CompletePayment) Execute(ctx context.Context, reference string) error 
 			return err
 		}
 
-		return uc.reservationConfirmer.ConfirmReservation(ctx, payment.ReservationID())
+		if err := uc.reservationConfirmer.ConfirmReservation(ctx, payment.ReservationID()); err != nil {
+			return err
+		}
+
+		if err := uc.ledger.PostPaymentReceived(ctx, payment.ReservationID(), payment.Amount()); err != nil {
+			return err
+		}
+
+		return nil
 	})
 }

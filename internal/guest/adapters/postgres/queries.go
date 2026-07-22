@@ -41,4 +41,9 @@ const (
 		FROM guest
 		WHERE email = $1;
 	`
+	FindGuestByID = `
+		SELECT *
+		FROM guest
+		WHERE id = $1;
+	`
 )

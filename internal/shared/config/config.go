@@ -22,6 +22,7 @@ const (
 
 type Config struct {
 	PORT 		 string
+	BaseUrl       string
 	DatabaseUrl    string
 	DBMAXOpenConns int
 	DBMAXIdleConns int
@@ -79,6 +80,7 @@ func SetupConfig() *Config {
 	_=godotenv.Load(".env")
 	return &Config{
 		DatabaseUrl:      requireEnv("DATABASE_URL"),
+		BaseUrl:          getEnv("BASE_URL", "http://localhost:3333"),
 		DBMAXOpenConns:   getEnvInt("DB_MAX_OPEN_CONNS", 25),
 		DBMAXIdleConns:   getEnvInt("DB_MAX_IDLE_CONNS", 25),
 		DBConnMAXLife:    getEnvInt("DB_CONN_MAX_LIFE", 300),

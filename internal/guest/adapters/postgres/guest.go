@@ -30,7 +30,12 @@ func (r *Repository) Create(
 		return err
 	}
 
-	*guest = *guestRow.toDomain()
+	resp, err := guestRow.toDomain()
+	if err != nil {
+		return err
+	}
+
+	*guest = *resp
 
 	return nil
 }
@@ -57,7 +62,11 @@ func (r *Repository) FindOrCreate(
 		return err
 	}
 
-	*guest = *guestRow.toDomain()
+	resp, err := guestRow.toDomain()
+	if err != nil {
+		return err
+	}
+	*guest = *resp
 
 	return nil
 }
@@ -103,5 +112,14 @@ func (r *Repository) FindByEmail(
 		return nil, err
 	}
 
-	return guestRow.toDomain(), nil
+	return guestRow.toDomain()
+}
+
+func (r *Repository) FindByID(ctx context.Context, id string) (*domain.Guest, error) {
+	exec := r.executor(ctx)
+	var row guestRow
+	if err := exec.GetContext(ctx, &row, FindGuestByID, id); err != nil {
+		return nil, err
+	}
+	return row.toDomain()
 }

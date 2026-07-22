@@ -10,6 +10,7 @@ type MockGuestRepository struct {
 	CreateFn func(ctx context.Context, guest *guest_domain.Guest) error
 	FindByEmailFn func(ctx context.Context, email string) (*guest_domain.Guest, error)
 	ExistsByEmailFn func(ctx context.Context, email string) (bool, error)
+	FindByIDFn func(ctx context.Context, id string) (*guest_domain.Guest, error)
 }
 
 func (m *MockGuestRepository) FindOrCreate(ctx context.Context, guest *guest_domain.Guest) error {
@@ -33,6 +34,14 @@ func (m *MockGuestRepository) FindByEmail(ctx context.Context, email string) (*g
 	}
 	return nil, nil
 }
+
+func (m *MockGuestRepository) FindByID(ctx context.Context, id string) (*guest_domain.Guest, error) {
+	if m.FindByIDFn != nil {
+		return m.FindByIDFn(ctx, id)
+	}
+	return nil, nil
+}
+
 
 func (m *MockGuestRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	if m.ExistsByEmailFn != nil {

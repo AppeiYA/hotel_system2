@@ -1,12 +1,11 @@
 package reservation_http
 
 import (
-	"errors"
-	reservation_domain "hotel_system2/internal/reservation/domain"
 	usecase "hotel_system2/internal/reservation/use_case"
 	"hotel_system2/internal/shared/logger"
 	"hotel_system2/internal/shared/response"
 	"hotel_system2/internal/shared/utils"
+	shared_http "hotel_system2/internal/shared/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -64,8 +63,9 @@ func (h *Handler) CreateReservation(c *fiber.Ctx) error {
 		logger.Error("Error creating reservation at handlers.CreateReservation", zap.Error(err))
 		return response.Error(c, fiber.StatusInternalServerError, err.Error(), nil)
 	}
+	output := toReservationDetailsOnly(resp)
 
-	return response.JSON(c, fiber.StatusCreated, "Reservation created successfully", resp)
+	return response.JSON(c, fiber.StatusCreated, "Reservation created successfully", output)
 }
 
 func (h *Handler) ListReservationsByEmail(c *fiber.Ctx) error {
@@ -80,7 +80,13 @@ func (h *Handler) ListReservationsByEmail(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusInternalServerError, err.Error(), nil)
 	}
 
-	return response.JSON(c, fiber.StatusOK, "Reservation fetched successfully", resp)
+	result := []reservationDetailsOnly{}
+	for _, reservation := range resp {
+		output := toReservationDetailsOnly(reservation)
+		result = append(result, output)
+	}
+
+	return response.JSON(c, fiber.StatusOK, "Reservation fetched successfully", result)
 }
 
 func (h *Handler) ListReservations(c *fiber.Ctx) error {
@@ -89,7 +95,14 @@ func (h *Handler) ListReservations(c *fiber.Ctx) error {
 		logger.Error("Error listing reservations at handlers.ListReservations", zap.Error(err))
 		return response.Error(c, fiber.StatusInternalServerError, err.Error(), nil)
 	}
-	return response.JSON(c, fiber.StatusOK, "Reservations listed successfully", resp)
+
+	result := []reservationDetailsOnly{}
+	for _, reservation := range resp {
+		output := toReservationDetailsOnly(reservation)
+		result = append(result, output)
+	}
+
+	return response.JSON(c, fiber.StatusOK, "Reservations listed successfully", result)
 }
 
 func (h *Handler) CheckIn(c *fiber.Ctx) error {
@@ -139,26 +152,7 @@ func (h *Handler) CheckOut(c *fiber.Ctx) error {
 			zap.String("reservation_id", id),
 			zap.Error(err),
 		)
-
-		switch {
-
-		case errors.Is(err, reservation_domain.ErrReservationNotFound):
-			return response.Error(c, fiber.StatusNotFound, err.Error(), nil)
-
-		case errors.Is(err, reservation_domain.ErrReservationNotCheckedIn):
-			return response.Error(c, fiber.StatusConflict, err.Error(), nil)
-
-		case errors.Is(err, reservation_domain.ErrFolioBalanceOutstanding):
-			return response.Error(c, fiber.StatusConflict, err.Error(), nil)
-
-		default:
-			return response.Error(
-				c,
-				fiber.StatusInternalServerError,
-				"failed to check out reservation",
-				nil,
-			)
-		}
+		return response.Error(c, shared_http.StatusFor(err), err.Error(), nil)
 	}
 
 	return response.JSON(

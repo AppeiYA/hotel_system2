@@ -14,4 +14,6 @@ var (
 	ErrInvalidTransition        = custom_errors.BadException("invalid reservation state transition")
 	ErrCannotCheckInEarly       = custom_errors.BadException("cannot check in before scheduled date")
 	ErrPaymentNotFound = custom_errors.NotFoundError("payment not found")
+	ErrCreatingReservation = custom_errors.InternalServerError("sql: no rows in result set (create reservation failed)")
+	ErrOutstandingBalance = custom_errors.BadException("cannot check out: reservation has an outstanding balance")
 )

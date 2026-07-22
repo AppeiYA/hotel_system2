@@ -32,7 +32,7 @@ type CreateReservation struct {
 	reservationRepo reservation_ports.ReservationRepository
 	roomRepo        room_ports.RoomRepository
 	guestRepo       guest_ports.GuestRepository
-	paymentLookup   reservation_ports.PaymentLookupPort
+	ledger reservation_ports.LedgerPort
 }
 
 func NewCreateReservation(
@@ -40,24 +40,23 @@ func NewCreateReservation(
 	reservationRepo reservation_ports.ReservationRepository,
 	roomRepo room_ports.RoomRepository,
 	guestRepo guest_ports.GuestRepository,
-	paymentLookup reservation_ports.PaymentLookupPort,
+	ledger reservation_ports.LedgerPort,
 ) *CreateReservation {
 	return &CreateReservation{
 		txManager:       txManager,
 		reservationRepo: reservationRepo,
 		roomRepo:        roomRepo,
 		guestRepo:       guestRepo,
-		paymentLookup:   paymentLookup,
+		ledger:          ledger,
 	}
 }
 
 func (uc *CreateReservation) Execute(
 	ctx context.Context,
 	input CreateReservationInput,
-) (*reservation_domain.ReservationDetails, error) {
+) (*reservation_domain.Reservation, error) {
 
-	var details *reservation_domain.ReservationDetails
-
+	var newReservation *reservation_domain.Reservation
 	err := uc.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 
 		room, err := uc.roomRepo.FindByID(ctx, input.RoomID)
@@ -125,24 +124,28 @@ func (uc *CreateReservation) Execute(
 			return err
 		}
 
-		details, err = uc.buildDetails(ctx, reservation)
-		return err
+		if err := uc.ledger.PostRoomCharge(ctx, reservation.ID(), totalAmount); err != nil {
+			return err
+		}
+
+		newReservation = reservation
+		return nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
-	return details, nil
+	return newReservation, nil
 }
 
-func (uc *CreateReservation) buildDetails(ctx context.Context, reservation *reservation_domain.Reservation) (*reservation_domain.ReservationDetails, error) {
-	paymentID, err := uc.paymentLookup.FindPaymentIDByReservationID(ctx, reservation.ID())
-	if err != nil && !errors.Is(err, reservation_ports.ErrPaymentNotFound) {
-		return nil, err
-	}
+// func (uc *CreateReservation) buildDetails(ctx context.Context, reservation *reservation_domain.Reservation) (*reservation_domain.ReservationDetails, error) {
+// 	paymentID, err := uc.paymentLookup.FindPaymentIDByReservationID(ctx, reservation.ID())
+// 	if err != nil && !errors.Is(err, reservation_ports.ErrPaymentNotFound) {
+// 		return nil, err
+// 	}
 
-	return &reservation_domain.ReservationDetails{
-		Reservation: *reservation,
-		PaymentID:   paymentID,
-	}, nil
-}
+// 	return &reservation_domain.ReservationDetails{
+// 		Reservation: *reservation,
+// 		PaymentID:   paymentID,
+// 	}, nil
+// }

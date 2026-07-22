@@ -2,6 +2,7 @@ package payment_http
 
 import (
 	payment_usecase "hotel_system2/internal/payment/use_case"
+	shared_http "hotel_system2/internal/shared/http"
 	"hotel_system2/internal/shared/logger"
 	"hotel_system2/internal/shared/response"
 	"hotel_system2/internal/shared/utils"
@@ -12,7 +13,7 @@ import (
 
 type Handler struct {
 	initializePayment *payment_usecase.InitializePayment
-	completePayment     *payment_usecase.CompletePayment
+	completePayment   *payment_usecase.CompletePayment
 }
 
 func NewHandler(
@@ -21,87 +22,45 @@ func NewHandler(
 ) *Handler {
 	return &Handler{
 		initializePayment: initializePayment,
-		completePayment:     completePayment,
+		completePayment:   completePayment,
 	}
 }
 
 func (h *Handler) Initialize(c *fiber.Ctx) error {
-
 	var req initializePaymentRequest
 
 	if err := c.BodyParser(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "invalid request body", nil)
 	}
-
 	if err := utils.Validate.Struct(req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
 
-	resp, err := h.initializePayment.Execute(
+	result, err := h.initializePayment.Execute(
 		c.Context(),
-		payment_usecase.InitializePaymentInput{
-			ReservationID: req.ReservationID,
-		},
+		payment_usecase.InitializePaymentInput{ReservationID: req.ReservationID},
 	)
-
 	if err != nil {
-		logger.Error(
-			"failed to initialize payment",
-			zap.Error(err),
-		)
-
-		return response.Error(
-			c,
-			fiber.StatusInternalServerError,
-			err.Error(),
-			nil,
-		)
+		logger.Error("failed to initialize payment", zap.Error(err), zap.String("reservation_id", req.ReservationID))
+		return response.Error(c, shared_http.StatusFor(err), err.Error(), nil)
 	}
 
-	return response.JSON(
-		c,
-		fiber.StatusCreated,
-		"Payment initialized successfully",
-		resp,
-	)
+	return response.JSON(c, fiber.StatusCreated, "Payment initialized successfully", initializePaymentResponse{
+		Reference:   result.Reference,
+		CheckoutURL: result.CheckoutURL,
+	})
 }
 
-func (h *Handler) Complete(c *fiber.Ctx) error {
-
+func (h *Handler) Webhook(c *fiber.Ctx) error {
 	reference := c.Params("reference")
-
 	if reference == "" {
-		return response.Error(
-			c,
-			fiber.StatusBadRequest,
-			"missing payment reference",
-			nil,
-		)
+		return response.Error(c, fiber.StatusBadRequest, "missing payment reference", nil)
 	}
 
-	if err := h.completePayment.Execute(
-		c.Context(),
-		reference,
-	); err != nil {
-
-		logger.Error(
-			"failed to complete payment",
-			zap.Error(err),
-			zap.String("reference", reference),
-		)
-
-		return response.Error(
-			c,
-			fiber.StatusInternalServerError,
-			err.Error(),
-			nil,
-		)
+	if err := h.completePayment.Execute(c.Context(), reference); err != nil {
+		logger.Error("failed to complete payment", zap.Error(err), zap.String("reference", reference))
+		return response.Error(c, shared_http.StatusFor(err), err.Error(), nil)
 	}
 
-	return response.JSON(
-		c,
-		fiber.StatusOK,
-		"Payment verified successfully",
-		nil,
-	)
+	return response.JSON(c, fiber.StatusOK, "Payment completed successfully", nil)
 }

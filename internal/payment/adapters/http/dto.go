@@ -5,3 +5,8 @@ type initializePaymentRequest struct {
 	Email         string `json:"email" validate:"required,email"`
 }
 
+type initializePaymentResponse struct {
+	Reference   string `json:"reference"`
+	CheckoutURL string `json:"checkout_url"`
+}
+

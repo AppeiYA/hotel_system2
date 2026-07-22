@@ -15,9 +15,150 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/reservations": {
+        "/payments/initialize": {
             "post": {
-                "description": "Create a new reservation with the provided details",
+                "description": "Initializes a payment session for a reservation.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "Initialize Payment",
+                "parameters": [
+                    {
+                        "description": "Payment initialization request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_payment_adapters_http.initializePaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_payment_adapters_http.initializePaymentResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/webhook/{reference}": {
+            "post": {
+                "description": "Confirms a payment session for a reservation.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "Confirm Payment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Payment reference",
+                        "name": "reference",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservations": {
+            "get": {
+                "description": "Retrieve all reservations",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "List all reservations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/internal_reservation_adapters_http.reservationResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a reservation for a guest",
                 "consumes": [
                     "application/json"
                 ],
@@ -64,6 +205,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
                         }
                     },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -73,20 +220,76 @@ const docTemplate = `{
                 }
             }
         },
-        "/reservations/{id}": {
+        "/reservations/{email}": {
             "get": {
-                "description": "Get reservation details by reservation ID",
+                "description": "Retrieve all reservations belonging to a guest email",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Reservations"
                 ],
-                "summary": "Get reservation details",
+                "summary": "List reservations by guest email",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Reservation ID",
+                        "description": "Guest email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/internal_reservation_adapters_http.reservationResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservations/{id}/check-in": {
+            "post": {
+                "description": "Check a guest into a reservation",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Check in guest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Reservation ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -96,11 +299,76 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_reservation_adapters_http.reservationResponse"
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservations/{id}/check-out": {
+            "post": {
+                "description": "Check out a guest after ensuring the folio balance is settled",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Check out guest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Reservation ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/hotel_system2_internal_shared_response.ErrorResponse"
                         }
@@ -160,34 +428,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "hotel_system2_internal_payment_domain.PaymentMethod": {
-            "type": "string",
-            "enum": [
-                "card",
-                "transfer",
-                "cash"
-            ],
-            "x-enum-varnames": [
-                "PaymentMethodCreditCard",
-                "PaymentMethodDebitCard",
-                "PaymentMethodCash"
-            ]
-        },
-        "hotel_system2_internal_payment_domain.PaymentStatus": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "success",
-                "failed",
-                "refunded"
-            ],
-            "x-enum-varnames": [
-                "PaymentStatusPending",
-                "PaymentStatusSuccess",
-                "PaymentStatusFailed",
-                "PaymentStatusRefunded"
-            ]
-        },
         "hotel_system2_internal_reservation_domain.ReservationStatus": {
             "type": "string",
             "enum": [
@@ -195,14 +435,16 @@ const docTemplate = `{
                 "confirmed",
                 "checked_in",
                 "checked_out",
-                "cancelled"
+                "cancelled",
+                "no_show"
             ],
             "x-enum-varnames": [
                 "ReservationStatusPending",
                 "ReservationStatusConfirmed",
                 "ReservationStatusCheckedIn",
                 "ReservationStatusCheckedOut",
-                "ReservationStatusCancelled"
+                "ReservationStatusCancelled",
+                "ReservationStatusNoShow"
             ]
         },
         "hotel_system2_internal_shared_response.ErrorResponse": {
@@ -226,6 +468,32 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "internal_payment_adapters_http.initializePaymentRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "reservation_id"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "reservation_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_payment_adapters_http.initializePaymentResponse": {
+            "type": "object",
+            "properties": {
+                "checkout_url": {
+                    "type": "string"
+                },
+                "reference": {
+                    "type": "string"
                 }
             }
         },
@@ -264,32 +532,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_reservation_adapters_http.paymentDetailsOnly": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "method": {
-                    "$ref": "#/definitions/hotel_system2_internal_payment_domain.PaymentMethod"
-                },
-                "reference": {
-                    "type": "string"
-                },
-                "reservation_id": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/hotel_system2_internal_payment_domain.PaymentStatus"
-                }
-            }
-        },
         "internal_reservation_adapters_http.reservationDetailsOnly": {
             "type": "object",
             "properties": {
@@ -322,8 +564,8 @@ const docTemplate = `{
         "internal_reservation_adapters_http.reservationResponse": {
             "type": "object",
             "properties": {
-                "payment": {
-                    "$ref": "#/definitions/internal_reservation_adapters_http.paymentDetailsOnly"
+                "payment_id": {
+                    "type": "string"
                 },
                 "reservation": {
                     "$ref": "#/definitions/internal_reservation_adapters_http.reservationDetailsOnly"
@@ -336,10 +578,13 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "currency": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
-                "rate": {
+                "rate_minor": {
                     "type": "integer"
                 },
                 "room_number": {

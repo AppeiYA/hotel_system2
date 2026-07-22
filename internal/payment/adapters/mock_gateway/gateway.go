@@ -7,23 +7,16 @@ import (
 	payment_domain "hotel_system2/internal/payment/domain"
 )
 
-type Gateway struct{}
-
-func NewGateway() *Gateway {
-	return &Gateway{}
+type Gateway struct {
+	baseURL string
 }
 
-func (g *Gateway) Initialize(
-	ctx context.Context,
-	email string,
-	amount int64,
-	reference string,
-) (string, error) {
+func NewGateway(baseURL string) *Gateway {
+	return &Gateway{baseURL: baseURL}
+}
 
-	return fmt.Sprintf(
-		"http://localhost:3000/mock-payment/%s",
-		reference,
-	), nil
+func (g *Gateway) Initialize(ctx context.Context, email string, amount int64, reference string) (string, error) {
+	return fmt.Sprintf("%s/mock-payment/%s", g.baseURL, reference), nil
 }
 
 func (g *Gateway) Verify(
