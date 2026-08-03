@@ -80,7 +80,31 @@ The project follows a standard layout for Go applications, with a clear separati
 - PostgreSQL
 - Docker (optional, for running a local database)
 
-### Installation
+### Running with Docker & Docker Compose (Recommended)
+
+1. **Start all services (Database, Redis, API) with one command:**
+
+    ```sh
+    docker compose up --build
+    ```
+
+   This will automatically:
+   - Start PostgreSQL and Redis containers with health checks.
+   - Build the Go application container using a multi-stage Dockerfile.
+   - Run database migrations (`-up`) and seed initial data (`-seed`).
+   - Start the HTTP API server on port `3333`.
+
+2. **Access the API and Swagger documentation:**
+   - Base URL: `http://localhost:3333`
+   - Swagger API Documentation: `http://localhost:3333/swagger/index.html`
+
+3. **Stop services:**
+
+    ```sh
+    docker compose down
+    ```
+
+### Manual / Local Installation (Without Docker)
 
 1.  **Clone the repository:**
 
@@ -92,34 +116,58 @@ The project follows a standard layout for Go applications, with a clear separati
 
 2.  **Set up environment variables:**
 
-    Create a `.env` file in the root directory and add the necessary configuration.
+    Copy `.env.example` to `.env` and adjust database/redis details if needed:
 
-    ```env
-    # Application
-    APP_ENV=development
-    LOG_LEVEL=debug
-    HTTP_PORT=8080
-
-    # Database
-    DB_HOST=localhost
-    DB_PORT=5432
-    DB_USER=user
-    DB_PASSWORD=password
-    DB_NAME=hotel
-    DB_SSL_MODE=disable
+    ```sh
+    cp .env.example .env
     ```
 
 3.  **Run database migrations:**
 
     ```sh
-    go run ./migrations --up/--down/--seed/--force value
+    go run ./migrations --up
+    go run ./migrations --seed
     ```
 
 4.  **Run the application:**
     ```sh
     go run ./cmd/api
     ```
-    The server will start on the port specified in your `.env` file (e.g., `http://localhost:8080`).
+    The server will start on the configured port (default `3333`).
+
+## GitHub Container Registry (GHCR) Integration
+
+### Automated Build & Push (CI/CD)
+
+A GitHub Actions workflow is set up at [`.github/workflows/docker-publish.yml`](file:///.github/workflows/docker-publish.yml).
+Whenever code is pushed to `main` or a new version tag (e.g., `v1.0.0`) is created, GitHub Actions automatically builds and pushes the image to:
+
+`ghcr.io/appeiya/hotel_system2:latest`
+
+### Manual Build & Upload via CLI
+
+To build and upload the image to GHCR manually from your terminal:
+
+1. **Create a GitHub Personal Access Token (PAT):**
+   - Go to GitHub Settings -> Developer Settings -> Personal Access Tokens (Tokens classic).
+   - Generate a token with the `write:packages` scope.
+
+2. **Run the publish script:**
+
+   ```bash
+   export GITHUB_USER="your_github_username"
+   export CR_PAT="your_personal_access_token"
+
+   ./scripts/publish-ghcr.sh latest
+   ```
+
+   Or manually using standard Docker commands:
+
+   ```bash
+   echo $CR_PAT | docker login ghcr.io -u $GITHUB_USER --password-stdin
+   docker build -t ghcr.io/appeiya/hotel_system2:latest .
+   docker push ghcr.io/appeiya/hotel_system2:latest
+   ```
 
 ## API Documentation
 
@@ -130,4 +178,5 @@ swag init -g ./cmd/api/main.go --parseInternal --parseDependency
 
 Once the server is running, the Swagger API documentation is available at `/swagger/index.html`.
 
-Example: `http://localhost:8080/swagger/index.html`
+Example: `http://localhost:3333/swagger/index.html`
+
