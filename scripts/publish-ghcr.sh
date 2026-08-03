@@ -1,38 +1,63 @@
 #!/usr/bin/env bash
-set -e
 
+set -euo pipefail
+
+# ==========================
 # Configuration
+# ==========================
 REGISTRY="ghcr.io"
-REPO="appeiya/hotel_system2"
+OWNER="appeiya"
+IMAGE_NAME="hotel_system2"
 TAG="${1:-latest}"
-IMAGE_FULL="${REGISTRY}/${REPO}:${TAG}"
 
-echo "=========================================="
-echo " Publishing image to GHCR"
-echo " Image target: ${IMAGE_FULL}"
-echo "=========================================="
+IMAGE="${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}"
 
-if [ -z "$CR_PAT" ]; then
-  echo "Error: CR_PAT environment variable is not set."
-  echo "Please export your GitHub Personal Access Token with 'write:packages' scope:"
-  echo "  export CR_PAT=your_github_pat_token"
-  echo "  export GITHUB_USER=your_github_username"
-  exit 1
+# ==========================
+# Validate Environment
+# ==========================
+: "${GITHUB_USER:?GITHUB_USER is not set}"
+: "${CR_PAT:?CR_PAT is not set}"
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is not installed."
+    exit 1
 fi
 
-if [ -z "$GITHUB_USER" ]; then
-  echo "Error: GITHUB_USER environment variable is not set."
-  echo "Please set GITHUB_USER=your_github_username"
-  exit 1
-fi
+echo
+echo "=========================================="
+echo "Publishing Docker image to GHCR"
+echo "Image: ${IMAGE}"
+echo "=========================================="
+echo
 
+# ==========================
+# Authenticate
+# ==========================
 echo "Logging in to ${REGISTRY}..."
-echo "$CR_PAT" | docker login "${REGISTRY}" -u "$GITHUB_USER" --password-stdin
 
-echo "Building Docker image..."
-docker build -t "${IMAGE_FULL}" .
+echo "${CR_PAT}" | docker login "${REGISTRY}" \
+    --username "${GITHUB_USER}" \
+    --password-stdin
 
-echo "Pushing image to ${REGISTRY}..."
-docker push "${IMAGE_FULL}"
+# ==========================
+# Build
+# ==========================
+echo
+echo "Building image..."
+docker build -t "${IMAGE}" .
 
-echo "Successfully built and pushed ${IMAGE_FULL}"
+# ==========================
+# Push
+# ==========================
+echo
+echo "Pushing image..."
+docker push "${IMAGE}"
+
+# ==========================
+# Cleanup
+# ==========================
+docker logout "${REGISTRY}" >/dev/null 2>&1 || true
+
+echo
+echo "✅ Successfully published!"
+echo "Image: ${IMAGE}"
