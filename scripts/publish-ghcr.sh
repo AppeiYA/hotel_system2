@@ -6,7 +6,7 @@ set -euo pipefail
 # Configuration
 # ==========================
 REGISTRY="ghcr.io"
-OWNER="appeiya"
+OWNER="AppeiYA"
 IMAGE_NAME="hotel_system2"
 TAG="${1:-latest}"
 
