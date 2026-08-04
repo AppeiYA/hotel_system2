@@ -49,6 +49,12 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=sha,format=short
+      
+      - name: Debug
+        run: |
+          echo "Repository=${{ github.repository }}"
+          echo "Actor=${{ github.actor }}"
+          echo "Image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -59,9 +65,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Debug
-        run: |
-          echo "Repository=${{ github.repository }}"
-          echo "Actor=${{ github.actor }}"
-          echo "Image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
